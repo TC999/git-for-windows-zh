@@ -11,7 +11,7 @@ jobs:
 
     steps:
       - name: 检出仓库代码
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0 # 获取完整的 git 历史记录
 

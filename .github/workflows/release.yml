@@ -2,64 +2,42 @@ name: 生成并发布语言包
 
 on:
   schedule:
-    - cron: '0 0 * * *'  # 每天UTC时间凌晨0点运行
-  workflow_dispatch:     # 允许手动触发工作流
+    - cron: "0 0 * * *" # 每天UTC时间凌晨0点运行
+  workflow_dispatch: # 允许手动触发工作流
 
 jobs:
   build-and-release:
     runs-on: ubuntu-latest
 
     steps:
-    - name: 检出仓库代码
-      uses: actions/checkout@v3
-      with:
-        fetch-depth: 0  # 获取完整的git历史，以便获取所有标签
+      - name: 检出仓库代码
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0 # 获取完整的 git 历史记录
 
-    - name: 检查是否有新的git-for-windows发布版本
-      id: check_release
-      run: |
-        chmod +x ./check_new_release.sh
-        ./check_new_release.sh
+      - name: 设置 Git 用户信息
+        run: |
+          git config --global user.name "GitHub Actions"
+          git config --global user.email "actions@github.com"
 
-    - name: 如果没有新版本则退出
-      if: steps.check_release.outputs.new_release == 'false'
-      run: |
-        echo "没有发现新版本。退出。"
-        exit 0
+      - name: 安装依赖
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y gettext zip jq
 
-    - name: 安装依赖
-      if: steps.check_release.outputs.new_release == 'true'
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y gettext zip
+      - name: 为脚本赋予执行权限
+        run: chmod +x ./get_new_versions.sh ./process_versions.sh ./build.sh
 
-    - name: 运行语言包生成脚本
-      if: steps.check_release.outputs.new_release == 'true'
-      run: |
-        chmod +x ./build.sh
-        ./build.sh ${{ steps.check_release.outputs.latest_version }}
+      - name: 获取新版本
+        id: get_new_versions
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+        run: ./get_new_versions.sh
 
-    - name: 创建GitHub Release
-      if: steps.check_release.outputs.new_release == 'true'
-      id: create_release
-      uses: actions/create-release@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        tag_name: v${{ steps.check_release.outputs.latest_version }}
-        release_name: v${{ steps.check_release.outputs.latest_version }}
-        body: |
-          自动发布git-for-windows v${{ steps.check_release.outputs.latest_version }}的语言包。
-        draft: false
-        prerelease: false
-
-    - name: 上传Release资源
-      if: steps.check_release.outputs.new_release == 'true'
-      uses: actions/upload-release-asset@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: build-${{ steps.check_release.outputs.latest_version }}.zip
-        asset_name: build-${{ steps.check_release.outputs.latest_version }}.zip
-        asset_content_type: application/zip
+      - name: 处理新版本
+        if: steps.get_new_versions.outputs.has_new_versions == 'true'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+        run: ./process_versions.sh

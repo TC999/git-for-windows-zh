@@ -7,11 +7,6 @@
 - **自动检测上游仓库的新版本**：每天定时检查`git-for-windows/git`仓库是否有新版本发布。
 - **自动发布语言文件**：在检测到新版本后，自动下载源代码并生成对应版本的中文语言文件，并以Release的形式发布到本仓库。
 
-## 文件结构
-
-- `build.sh`：用于生成语言文件的脚本。
-- `check_new_release.sh`：用于检查上游仓库是否有新版本的脚本。
-- `.github/workflows/release.yml`：GitHub Actions工作流文件，实现自动化流程。
 
 ## 语言文件的使用方式
 

@@ -9,20 +9,20 @@ if [ -z "$GITHUB_TOKEN" ]; then
 fi
 
 # 读取版本列表
-if [ ! -f "versions.txt" ]; then
-  echo "versions.txt 文件未找到。请先运行 get_versions.sh。"
+if [ ! -f "new_versions.txt" ]; then
+  echo "new_versions.txt 文件未找到。请先运行 get_new_versions.sh。"
   exit 1
 fi
 
 # 读取版本列表到数组
-mapfile -t VERSION_ARRAY < versions.txt
+mapfile -t VERSION_ARRAY < new_versions.txt
 
 # 遍历版本列表
 for VERSION in "${VERSION_ARRAY[@]}"; do
   echo "----------------------------------------"
   echo "处理版本：$VERSION"
 
-  # 检查是否已有对应的标签
+  # 检查是否已有对应的标签（防止并发运行导致的问题）
   if git tag | grep -q "^v$VERSION$"; then
     echo "版本 v$VERSION 已存在，跳过。"
     continue

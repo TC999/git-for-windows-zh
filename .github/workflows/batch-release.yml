@@ -1,102 +1,42 @@
 name: 批量生成并发布语言包
 
 on:
-  workflow_dispatch:  # 手动触发
+  workflow_dispatch: # 手动触发
 
 jobs:
   build-and-release:
     runs-on: ubuntu-latest
 
     steps:
-    # 步骤1：检出仓库代码
-    - name: 检出仓库代码
-      uses: actions/checkout@v3
-      with:
-        fetch-depth: 0  # 获取完整的 git 历史记录，以便获取所有标签
+      # 步骤 1：检出仓库代码
+      - name: 检出仓库代码
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0 # 获取完整的 git 历史记录
 
-    # 步骤2：设置 Git 用户信息
-    - name: 设置 Git 用户信息
-      run: |
-        git config --global user.name "GitHub Actions"
-        git config --global user.email "actions@github.com"
+      # 步骤 2：设置 Git 用户信息
+      - name: 设置 Git 用户信息
+        run: |
+          git config --global user.name "GitHub Actions"
+          git config --global user.email "actions@github.com"
 
-    # 步骤3：安装依赖
-    - name: 安装依赖
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y gettext zip jq
+      # 步骤 3：安装依赖
+      - name: 安装依赖
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y gettext zip jq
 
-    # 步骤4：获取最近十个版本
-    - name: 获取最近十个版本
-      id: get_versions
-      run: |
-        UPSTREAM_REPO="git-for-windows/git"
-        VERSIONS=$(curl -s "https://api.github.com/repos/$UPSTREAM_REPO/releases?per_page=10" | jq -r '.[].tag_name' | sed 's/^v//')
-        echo "versions=$VERSIONS" >> $GITHUB_OUTPUT
+      # 步骤 4：为脚本赋予执行权限
+      - name: 为脚本赋予执行权限
+        run: chmod +x ./get_versions.sh ./process_versions.sh ./build.sh
 
-    # 步骤5：生成语言包并创建 Release
-    - name: 生成语言包并创建 Release
-      run: |
-        for VERSION in ${{ steps.get_versions.outputs.versions }}; do
-          echo "处理版本：$VERSION"
+      # 步骤 5：获取最近十个版本
+      - name: 获取最近十个版本
+        run: ./get_versions.sh
 
-          # 检查是否已有对应的标签
-          if git tag | grep -q "^v$VERSION$"; then
-            echo "版本 v$VERSION 已存在，跳过。"
-            continue
-          fi
-
-          # 生成语言包
-          chmod +x ./build.sh
-          ./build.sh "$VERSION"
-
-          ZIP_NAME="build-$VERSION.zip"
-          if [ ! -f "$ZIP_NAME" ]; then
-            echo "语言包 $ZIP_NAME 未找到，生成可能失败，跳过此版本。"
-            continue
-          fi
-
-          # 创建 Git 标签并推送到远程仓库
-          git tag "v$VERSION"
-          git push origin "v$VERSION"
-
-          # 创建 GitHub Release
-          RELEASE_RESPONSE=$(curl -s -H "Authorization: token $GITHUB_TOKEN" \
-            -H "Content-Type: application/json" \
-            -d @- https://api.github.com/repos/${GITHUB_REPOSITORY}/releases <<EOF
-          {
-            "tag_name": "v$VERSION",
-            "name": "v$VERSION",
-            "body": "自动发布 git-for-windows v$VERSION 的中文语言包。",
-            "draft": false,
-            "prerelease": false
-          }
-          EOF
-          )
-
-          # 提取 Release 上传 URL
-          UPLOAD_URL=$(echo "$RELEASE_RESPONSE" | jq -r '.upload_url' | sed 's/{?name,label}//')
-
-          if [ "$UPLOAD_URL" != "null" ]; then
-            # 上传资产
-            curl -s -H "Authorization: token $GITHUB_TOKEN" \
-              -H "Content-Type: application/zip" \
-              --data-binary @"$ZIP_NAME" \
-              "$UPLOAD_URL?name=$ZIP_NAME"
-
-            echo "Release v$VERSION 及其资产已创建。"
-          else
-            echo "创建 Release v$VERSION 失败，跳过上传资产。"
-            continue
-          fi
-
-          # 清理生成的文件
-          rm -f "$ZIP_NAME"
-          rm -rf "git-$VERSION"
-          rm -f "v$VERSION.tar.gz"
-
-          echo "版本 v$VERSION 处理完成。"
-        done
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      shell: bash
+      # 步骤 6：生成语言包并创建 Release
+      - name: 生成语言包并创建 Release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+        run: ./process_versions.sh

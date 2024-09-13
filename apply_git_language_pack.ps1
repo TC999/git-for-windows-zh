@@ -1,5 +1,3 @@
-# apply_git_language_pack.ps1
-
 # 设置您的GitHub用户名和仓库名
 $GitHubUser = "zkl2333"      # 替换为您的GitHub用户名
 $GitHubRepo = "git-for-windows-zh"    # 替换为您的GitHub仓库名

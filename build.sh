@@ -15,7 +15,7 @@ outdir="build"
 
 # 如果tarball不存在，则下载
 if [ ! -f "$tarfile" ]; then
-  curl -L -O "https://github.com/git-for-windows/git/archive/refs/tags/$tarfile"
+  curl -L -O "https://github.com/TC999/git/archive/refs/tags/$tarfile"
 fi
 
 # 解压tarball

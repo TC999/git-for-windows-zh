@@ -51,7 +51,14 @@ git status
 
 #### 步骤 3：设置环境变量
 
-将 `LANG` 环境变量设置为 `zh_CN.UTF-8`：
+将 Git bash 环境中的 `LANG` 环境变量设置为 `zh_CN.UTF-8`：
+
+##### 方式1：bash profile
+
+1. 打开`$env:USERPROFILE\.bash_profile`。
+2. 在文件适当位置添加一行`export LANG=zh_CN`，通常是在`test -f ~/.bashrc && . ~/.bashrc`之后。
+
+##### 方式2：系统环境变量
 
 1. 右键“此电脑”，选择“属性”。
 2. 点击“高级系统设置” > “环境变量”。
